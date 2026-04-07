@@ -1422,6 +1422,8 @@ The TouchHandle interface exposes methods to manipulate touches that have been s
 
 </td><td>
 
+Tool annotations
+
 </td></tr>
 <tr><td>
 
@@ -1958,6 +1960,8 @@ Whether to wait for the element to be [visible](./puppeteer.elementhandle.isvisi
 <span id="webmcpinvocationstatus">[WebMCPInvocationStatus](./puppeteer.webmcpinvocationstatus.md)</span>
 
 </td><td>
+
+Represents the status of a tool invocation.
 
 </td></tr>
 <tr><td>
