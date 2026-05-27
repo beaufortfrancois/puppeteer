@@ -267,7 +267,7 @@ describe('Page.webmcp', function () {
     expect(removedTools[0]!.location).toBeUndefined();
   });
 
-  it('should remove tools on frame navigation', async () => {
+  it('should remove tools on cross-document navigation', async () => {
     const {page, httpsServer} = state;
     await page.goto(httpsServer.EMPTY_PAGE);
 
@@ -300,6 +300,36 @@ describe('Page.webmcp', function () {
     expect(removedTools.length).toBe(1);
     expect(removedTools[0]!.name).toBe('declarative tool name');
     expect(page.webmcp.tools().length).toBe(0);
+  });
+
+  it.only('should not remove tools on same-document navigation', async () => {
+    const {page, httpsServer} = state;
+    await page.goto(httpsServer.EMPTY_PAGE);
+
+    const toolsAddedPromise = new Promise<void>(resolve => {
+      page.webmcp.once('toolsadded', () => {
+        resolve();
+      });
+    });
+
+    // Register a declarative WebMCP tool.
+    await page.setContent(
+      html`<form
+        toolname="mytool"
+        tooldescription="tool description"
+      ></form>`,
+    );
+
+    await toolsAddedPromise;
+    expect(page.webmcp.tools().length).toBe(1);
+
+    await Promise.all([
+      page.evaluate(() => {
+        history.pushState({}, '', '#same-document-navigation');
+      }),
+      page.waitForNavigation(),
+    ]);
+    expect(page.webmcp.tools().length).toBe(1);
   });
 
   it('should fire toolinvoked events', async () => {

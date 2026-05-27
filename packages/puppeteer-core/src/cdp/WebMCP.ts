@@ -16,6 +16,8 @@ import {debugError} from '../common/util.js';
 import type {CdpFrame} from './Frame.js';
 import type {FrameManager} from './FrameManager.js';
 import {FrameManagerEvent} from './FrameManagerEvents.js';
+import type {ExecutionContext} from './ExecutionContext.js';
+import type {IsolatedWorld} from './IsolatedWorld.js';
 import {MAIN_WORLD} from './IsolatedWorlds.js';
 
 /**
@@ -366,7 +368,26 @@ export class WebMCP extends EventEmitter<{
     this.emit('toolresponded', response);
   };
 
-  #onFrameNavigated = (frame: Frame) => {
+  #onFrameAttached = (frame: CdpFrame) => {
+    this.#registerWorldListeners(frame.worlds[MAIN_WORLD]);
+  };
+
+  #registerWorldListeners = (world: IsolatedWorld) => {
+    world.emitter.on('context', (context: ExecutionContext) => {
+      context.on('disposed', () => {
+        this.#onContextDisposed(world);
+      });
+    });
+    const context = world.context;
+    if (context) {
+      context.on('disposed', () => {
+        this.#onContextDisposed(world);
+      });
+    }
+  };
+
+  #onContextDisposed = (world: IsolatedWorld) => {
+    const frame = world.environment as CdpFrame;
     this.#pendingCalls.clear();
     const frameTools = this.#tools.get(frame._id);
     if (!frameTools) {
@@ -387,9 +408,12 @@ export class WebMCP extends EventEmitter<{
     this.#client = client;
     this.#frameManager = frameManager;
     this.#frameManager.on(
-      FrameManagerEvent.FrameNavigated,
-      this.#onFrameNavigated,
+      FrameManagerEvent.FrameAttached,
+      this.#onFrameAttached,
     );
+    for (const frame of this.#frameManager.frames()) {
+      this.#onFrameAttached(frame);
+    }
     this.#bindListeners();
   }
 
